@@ -21,6 +21,7 @@ import InvestigationAssistant from "./investigationassistant";
 import RecoveryCenter from "./RecoveryCenter";
 import CampusIntelligence from "./CampusIntelligence";
 import "./App.css";
+import { API_BASE_URL } from "./api";
 
 const NAV_ITEMS = [
   {
