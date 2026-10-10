@@ -4,15 +4,15 @@ import re
 
 def investigate(question, scan=None, transaction=None):
     """
-    FraudShield's local investigation assistant.
+    FraudShield AI Investigation Assistant.
 
-    Routes questions to evidence-based responses.
-    No external AI service is used.
+    Provides evidence-based, rule-based financial
+    cybersecurity guidance without external AI services.
     """
 
-    q = question.lower().strip()
-    scan = scan or {}
-    transaction = transaction or {}
+    q = str(question or "").lower().strip()
+    scan = scan if isinstance(scan, dict) else {}
+    transaction = transaction if isinstance(transaction, dict) else {}
 
     if not q:
         return {
@@ -20,22 +20,20 @@ def investigate(question, scan=None, transaction=None):
             "evidence": []
         }
 
-    evidence = []
-    flagged = transaction.get("flagged_transactions") or []
+    def to_number(value, default=0):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
 
-    scan_findings = scan.get("findings") or []
+    def to_count(value, default=0):
+        try:
+            return max(0, int(value))
+        except (TypeError, ValueError):
+            return default
 
-    for finding in scan_findings[:8]:
-        evidence.append(f"Payment scan: {finding}")
-
-    for t in flagged[:8]:
-        merchant = str(t.get("merchant", "Unknown merchant"))
-        amount = t.get("amount", 0)
-
-        for alert in (t.get("alerts") or [])[:3]:
-            evidence.append(
-                f"{merchant} (${amount:.2f}): {alert}"
-            )
+    def money(value):
+        return f"${to_number(value):,.2f}"
 
     def has_any(*phrases):
         return any(
@@ -46,63 +44,194 @@ def investigate(question, scan=None, transaction=None):
             for phrase in phrases
         )
 
+    # ==========================================
+    # TRANSACTION DATA
+    # ==========================================
+
+    raw_flagged = transaction.get("flagged_transactions")
+
+    flagged = (
+        raw_flagged
+        if isinstance(raw_flagged, list)
+        else []
+    )
+
+    flagged = [
+        item for item in flagged
+        if isinstance(item, dict)
+    ]
+
+    total_transactions = to_count(
+        transaction.get("total_transactions", 0)
+    )
+
+    reported_flagged = to_count(
+        transaction.get("flagged_count"),
+        default=len(flagged)
+    )
+
+    flagged_count = max(reported_flagged, len(flagged))
+
     def transaction_summary():
         if not transaction:
             return (
                 "I don't have a transaction analysis yet. "
-                "Open Transaction Monitor and upload "
-                "your sample CSV first."
+                "Open Transaction Monitor and upload a CSV "
+                "file first."
             )
 
-        count = transaction.get("total_transactions", 0)
-        flagged_count = transaction.get("flagged_count", 0)
+        return (
+            f"I analyzed {total_transactions} transactions "
+            f"and flagged {flagged_count} for review. "
+        )
+
+    def flagged_details():
+        if not flagged:
+            if flagged_count > 0:
+                return (
+                    "The analysis reports flagged transactions, "
+                    "but their individual details were not "
+                    "included in the investigation data. "
+                    "Open Transaction Monitor to review them."
+                )
+
+            return (
+                "No transactions were flagged by the "
+                "current detection rules."
+            )
+
+        sorted_items = sorted(
+            flagged,
+            key=lambda item: to_number(
+                item.get("risk_score", 0)
+            ),
+            reverse=True
+        )
+
+        lines = []
+
+        for item in sorted_items[:10]:
+            merchant = str(
+                item.get("merchant") or "Unknown merchant"
+            )
+
+            amount = money(item.get("amount"))
+
+            score = to_number(
+                item.get("risk_score", 0)
+            )
+
+            score_text = (
+                f"{score:g}/100"
+            )
+
+            lines.append(
+                f"- {merchant}: {amount} "
+                f"(risk score: {score_text})"
+            )
+
+            alerts = item.get("alerts") or []
+
+            if isinstance(alerts, list):
+                for alert in alerts[:3]:
+                    lines.append(f"  Reason: {alert}")
 
         return (
-            f"I analyzed {count} transactions and "
-            f"flagged {flagged_count} for review. "
+            "Here are the available flagged transactions, "
+            "ordered by their risk scores:\n\n"
+            + "\n".join(lines)
+            + "\n\nThese are warning indicators, "
+            "not confirmed cases of fraud."
         )
+
+    # ==========================================
+    # PAYMENT SCAN DATA
+    # ==========================================
+
+    scan_findings = scan.get("findings") or []
+
+    if not isinstance(scan_findings, list):
+        scan_findings = []
 
     def payment_summary():
         if not scan:
             return (
                 "I don't have a payment scan yet. "
-                "Use Scam Scanner to analyze a payment "
-                "message or link first."
+                "Use Scam Scanner or Campus Intelligence "
+                "to analyze a suspicious message first."
             )
 
         score = scan.get("risk_score", 0)
         level = scan.get("risk_level", "Unknown")
 
-        result = (
+        answer = (
             f"Your latest payment scan received a "
             f"heuristic risk score of {score}/100 "
             f"({level}). "
         )
 
         if scan_findings:
-            result += (
+            answer += (
                 "The main warning indicators were: "
-                + "; ".join(scan_findings[:5])
+                + "; ".join(
+                    str(item) for item in scan_findings[:5]
+                )
                 + ". "
             )
         else:
-            result += (
+            answer += (
                 "The current rules did not identify "
                 "specific warning indicators. "
             )
 
-        result += (
+        answer += (
             "This score is not the probability of fraud "
-            "and does not verify that a payment is safe."
+            "and does not guarantee that a payment is safe."
         )
 
-        return result
+        return answer
 
-    # 1. Recovery questions get priority
+    # ==========================================
+    # SUPPORTING EVIDENCE
+    # ==========================================
+
+    evidence = []
+
+    for finding in scan_findings[:8]:
+        evidence.append(
+            f"Payment scan: {finding}"
+        )
+
+    for item in flagged[:8]:
+        merchant = str(
+            item.get("merchant") or "Unknown merchant"
+        )
+
+        amount = money(item.get("amount"))
+
+        alerts = item.get("alerts") or []
+
+        if isinstance(alerts, list):
+            for alert in alerts[:3]:
+                evidence.append(
+                    f"{merchant} ({amount}): {alert}"
+                )
+
+    # ==========================================
+    # 1. RECOVERY QUESTIONS
+    # ==========================================
+
     if has_any(
-        "already paid", "already sent", "scammed",
-        "scammer", "recover", "recovery", "refund",
-        "money stolen", "lost money", "dispute",
+        "already paid",
+        "already sent",
+        "scammed",
+        "scammer",
+        "recover",
+        "recovery",
+        "refund",
+        "money stolen",
+        "lost money",
+        "dispute",
         "unauthorized payment"
     ):
         answer = (
@@ -111,52 +240,68 @@ def investigate(question, scan=None, transaction=None):
             "1. Contact your bank or payment provider "
             "using its official phone number or app.\n"
             "2. Report the suspicious payment and ask "
-            "whether a dispute, recall, or other "
-            "recovery option is available.\n"
+            "whether a dispute, recall, or recovery "
+            "option is available.\n"
             "3. Save screenshots, receipts, messages, "
             "and transaction details.\n"
-            "4. Change any compromised passwords and "
+            "4. Change compromised passwords and "
             "enable multifactor authentication.\n"
             "5. Report the scam through official "
             "consumer protection channels.\n\n"
-            "Your options depend on how you paid. "
-            "Recovery is not guaranteed."
+            "Recovery depends on how the money was sent "
+            "and is not guaranteed."
         )
 
-    # 2. Duplicate transaction questions
+    # ==========================================
+    # 2. DUPLICATE TRANSACTIONS
+    # ==========================================
+
     elif has_any(
-        "duplicate", "duplicates", "charged twice",
-        "same charge", "double charged",
+        "duplicate",
+        "duplicates",
+        "charged twice",
+        "same charge",
+        "double charged",
         "repeated payment"
     ):
         if not transaction:
             answer = transaction_summary()
+
         else:
             duplicates = [
-                t for t in flagged
+                item for item in flagged
                 if any(
-                    "duplicate" in a.lower()
-                    for a in (t.get("alerts") or [])
+                    "duplicate" in str(alert).lower()
+                    for alert in (item.get("alerts") or [])
                 )
             ]
 
             if duplicates:
                 examples = [
-                    f"{t['merchant']}: ${t['amount']:.2f}"
-                    for t in duplicates[:6]
+                    f"- {item.get('merchant', 'Unknown')}: "
+                    f"{money(item.get('amount'))}"
+                    for item in duplicates[:6]
                 ]
 
                 answer = (
                     transaction_summary()
-                    + "These transactions have possible "
+                    + "These transactions contain possible "
                     "duplicate-charge indicators:\n\n"
-                    + "\n".join(
-                        f"- {item}" for item in examples
-                    )
-                    + "\n\nThese may be legitimate separate "
-                    "purchases. Check your receipts and "
-                    "bank statement before reporting them."
+                    + "\n".join(examples)
+                    + "\n\nCheck your receipts and bank "
+                    "statement before reporting them."
                 )
+
+            elif flagged_count > 0:
+                answer = (
+                    transaction_summary()
+                    + "No duplicate-charge indicators were "
+                    "found in the available transaction "
+                    "details. Some flagged records may not "
+                    "have been included in the assistant's "
+                    "investigation data."
+                )
+
             else:
                 answer = (
                     transaction_summary()
@@ -164,79 +309,90 @@ def investigate(question, scan=None, transaction=None):
                     "identified by the current rules."
                 )
 
-    # 3. Subscription questions
+    # ==========================================
+    # 3. SUBSCRIPTIONS
+    # ==========================================
+
     elif has_any(
-        "subscription", "subscriptions",
-        "netflix", "recurring", "price increase"
+        "subscription",
+        "subscriptions",
+        "netflix",
+        "recurring",
+        "price increase"
     ):
         if not transaction:
             answer = transaction_summary()
+
         else:
             recurring = [
-                t for t in flagged
+                item for item in flagged
                 if any(
-                    "recurring" in a.lower()
-                    for a in (t.get("alerts") or [])
+                    "recurring" in str(alert).lower()
+                    for alert in (item.get("alerts") or [])
                 )
             ]
 
             if recurring:
                 items = [
-                    f"{t['merchant']}: ${t['amount']:.2f}"
-                    for t in recurring[:6]
+                    f"- {item.get('merchant', 'Unknown')}: "
+                    f"{money(item.get('amount'))}"
+                    for item in recurring[:6]
                 ]
 
                 answer = (
-                    "FraudShield detected potential "
+                    transaction_summary()
+                    + "FraudShield detected possible "
                     "recurring payment changes:\n\n"
-                    + "\n".join(
-                        f"- {item}" for item in items
-                    )
-                    + "\n\nReview these changes against "
-                    "your subscription agreements. "
-                    "A price increase alone doesn't "
-                    "mean fraud."
-                )
-            else:
-                answer = (
-                    "No recurring payment increases "
-                    "were flagged in the latest analysis."
+                    + "\n".join(items)
+                    + "\n\nReview these against your "
+                    "subscription agreements. A price "
+                    "increase alone does not mean fraud."
                 )
 
-    # 4. Transaction risk questions
+            elif flagged_count > 0:
+                answer = (
+                    transaction_summary()
+                    + "No recurring payment increases were "
+                    "identified in the available transaction "
+                    "details. Other flagged activity may "
+                    "still need review."
+                )
+
+            else:
+                answer = (
+                    "No recurring payment increases were "
+                    "flagged in the latest analysis."
+                )
+
+    # ==========================================
+    # 4. TRANSACTION INVESTIGATION
+    # ==========================================
+
     elif has_any(
-        "transaction", "transactions", "charges",
-        "spending", "merchant", "merchants",
-        "which payments", "which charges"
+        "transaction",
+        "transactions",
+        "charges",
+        "spending",
+        "merchant",
+        "merchants",
+        "which payments",
+        "which charges",
+        "flagged",
+        "flags"
     ):
         if not transaction:
             answer = transaction_summary()
-        elif flagged:
-            sorted_items = sorted(
-                flagged,
-                key=lambda t: t.get("risk_score", 0),
-                reverse=True
-            )
 
-            items = [
-                (
-                    f"- {t['merchant']}: "
-                    f"${t['amount']:.2f} "
-                    f"(score: {t.get('risk_score', 0)}/100)"
-                )
-                for t in sorted_items[:6]
-            ]
-
+        elif flagged_count > 0:
             answer = (
                 transaction_summary()
-                + "Here are the flagged payments, "
-                "ordered by their heuristic risk scores:\n\n"
-                + "\n".join(items)
-                + "\n\nHigher scores indicate more "
-                "rule-based warning signals, not "
-                "confirmed fraud. Check the specific "
-                "findings for each payment."
+                + flagged_details()
+                + "\n\nReview unfamiliar payments through "
+                "your bank's official app or website. "
+                "Do not assume that a flagged transaction "
+                "is automatically fraudulent."
             )
+
         else:
             answer = (
                 transaction_summary()
@@ -244,77 +400,111 @@ def investigate(question, scan=None, transaction=None):
                 "the current detection rules."
             )
 
-    # 5. Payment scan and risk score questions
+    # ==========================================
+    # 5. PAYMENT RISK SCORES
+    # ==========================================
+
     elif has_any(
-        "score", "scanned link", "latest scan",
-        "payment risk", "high risk", "low risk",
-        "why flagged", "why suspicious"
+        "score",
+        "scanned link",
+        "latest scan",
+        "payment risk",
+        "high risk",
+        "low risk",
+        "why suspicious"
     ):
         if scan:
             answer = payment_summary()
+
         elif transaction:
-            answer = transaction_summary()
+            answer = (
+                transaction_summary()
+                + flagged_details()
+            )
+
         else:
             answer = payment_summary()
 
-    # 6. Payment verification and phishing questions
+    # ==========================================
+    # 6. VERIFYING SUSPICIOUS PAYMENTS
+    # ==========================================
+
     elif has_any(
-        "verify", "verification", "phishing",
-        "suspicious payment", "payment link",
-        "university payment", "tuition",
-        "website", "suspicious message"
+        "verify",
+        "verification",
+        "phishing",
+        "suspicious payment",
+        "payment link",
+        "university payment",
+        "tuition",
+        "website",
+        "suspicious message"
     ):
         answer = (
             "Before making a suspicious payment:\n\n"
-            "1. Open the organization's official "
-            "website yourself, rather than using "
-            "the link in the message.\n"
-            "2. Confirm the payment amount and "
-            "recipient through an official channel.\n"
-            "3. Watch for unexpected domains, "
-            "urgency, impersonation, and unusual "
-            "payment methods.\n"
-            "4. Never share one-time codes or "
-            "banking passwords.\n\n"
+            "1. Open the organization's official website "
+            "yourself rather than using a message link.\n"
+            "2. Confirm the payment amount and recipient "
+            "through an official channel.\n"
+            "3. Watch for unusual domains, urgency, "
+            "impersonation, and unexpected payment methods.\n"
+            "4. Never share banking passwords or "
+            "one-time verification codes.\n\n"
         )
 
         if scan:
             answer += payment_summary()
+
         else:
             answer += (
-                "You can paste the message into "
-                "Scam Scanner for a preliminary "
+                "You can paste the suspicious message "
+                "into Scam Scanner for a preliminary "
                 "assessment."
             )
 
-    # 7. General questions about scams
-    elif has_any("scam", "fraud", "suspicious", "risk"):
+    # ==========================================
+    # 7. GENERAL SCAM QUESTIONS
+    # ==========================================
+
+    elif has_any(
+        "scam",
+        "fraud",
+        "suspicious",
+        "risk"
+    ):
         answer = (
-            "FraudShield can help identify warning "
-            "indicators in payment requests and "
-            "financial transactions.\n\n"
+            "FraudShield can identify warning indicators "
+            "in payment messages and financial transactions.\n\n"
         )
 
         if scan:
             answer += payment_summary()
+
         elif transaction:
-            answer += transaction_summary()
+            answer += (
+                transaction_summary()
+                + flagged_details()
+            )
+
         else:
             answer += (
                 "Start by scanning a suspicious payment "
-                "message or uploading sample transactions."
+                "message or uploading a transaction CSV."
             )
 
-    # 8. Questions the local system cannot understand
+    # ==========================================
+    # 8. OTHER QUESTIONS
+    # ==========================================
+
     else:
         answer = (
             "I don't have enough information to answer "
             "that question accurately using my current "
             "local investigation rules.\n\n"
             "I can help with:\n"
-            "- Suspicious transaction explanations\n"
+            "- Suspicious transactions\n"
             "- Duplicate charges\n"
-            "- Recurring payment increases\n"
+            "- Recurring payments\n"
             "- Payment scam risk scores\n"
             "- Scam verification and recovery\n\n"
             "Try asking a more specific question."
@@ -324,8 +514,8 @@ def investigate(question, scan=None, transaction=None):
         "answer": answer,
         "evidence": evidence[:12],
         "disclaimer": (
-            "FraudShield is an experimental, "
-            "rule-based investigation assistant. "
-            "Findings are not proof of fraud."
+            "FraudShield is an experimental, rule-based "
+            "investigation assistant. Its findings are "
+            "not proof of fraud."
         )
     }
