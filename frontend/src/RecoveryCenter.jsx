@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const methods = {
   credit: {
@@ -55,14 +55,26 @@ export default function RecoveryCenter({ scan = null }) {
   const [date, setDate] = useState("");
   const [description, setDescription] = useState("");
   const [paymentSent, setPaymentSent] = useState("unknown");
+
   const [generated, setGenerated] = useState(false);
   const [completed, setCompleted] = useState([]);
   const [copyStatus, setCopyStatus] = useState("");
 
+  // Keep imported scan separate so Reset can clear it.
+  const [activeScan, setActiveScan] = useState(scan);
+
+  // New incoming scans can still be imported after a reset.
+  useEffect(() => {
+    setActiveScan(scan);
+    setGenerated(false);
+    setCompleted([]);
+    setCopyStatus("");
+  }, [scan]);
+
   const plan = methods[method];
 
-  const importedFindings = Array.isArray(scan?.findings)
-    ? scan.findings
+  const importedFindings = Array.isArray(activeScan?.findings)
+    ? activeScan.findings
     : [];
 
   function updateForm(setter, value) {
@@ -72,14 +84,38 @@ export default function RecoveryCenter({ scan = null }) {
     setCopyStatus("");
   }
 
+  function resetReport() {
+    setMethod("credit");
+    setAmount("");
+    setDate("");
+    setDescription("");
+    setPaymentSent("unknown");
+
+    setGenerated(false);
+    setCompleted([]);
+    setCopyStatus("");
+
+    // Remove the current imported investigation.
+    setActiveScan(null);
+
+    // Move back to the recovery form.
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+
   function generatePlan(event) {
     event.preventDefault();
 
-    if (amount && (
-      !Number.isFinite(Number(amount)) ||
-      Number(amount) < 0 ||
-      Number(amount) > 100000000
-    )) {
+    if (
+      amount &&
+      (
+        !Number.isFinite(Number(amount)) ||
+        Number(amount) < 0 ||
+        Number(amount) > 100000000
+      )
+    ) {
       return;
     }
 
@@ -126,11 +162,17 @@ export default function RecoveryCenter({ scan = null }) {
       ""
     ];
 
-    if (scan) {
+    if (activeScan) {
       lines.push(
-        `Source: ${scan.source || "FraudShield Scanner"}`,
-        `Heuristic risk score: ${scan.risk_score}/100`,
-        `Risk classification: ${scan.risk_level}`,
+        `Source: ${
+          activeScan.source || "FraudShield Scanner"
+        }`,
+        `Heuristic risk score: ${
+          activeScan.risk_score
+        }/100`,
+        `Risk classification: ${
+          activeScan.risk_level
+        }`,
         "",
         "DETECTED WARNING INDICATORS"
       );
@@ -148,7 +190,7 @@ export default function RecoveryCenter({ scan = null }) {
       lines.push(
         "",
         "ORIGINAL SCANNER RECOMMENDATION",
-        scan.recommendation ||
+        activeScan.recommendation ||
           "Verify the payment request independently."
       );
     } else {
@@ -194,7 +236,10 @@ export default function RecoveryCenter({ scan = null }) {
   async function copyReport() {
     try {
       await navigator.clipboard.writeText(buildReport());
-      setCopyStatus("Incident report copied successfully.");
+
+      setCopyStatus(
+        "Incident report copied successfully."
+      );
     } catch {
       setCopyStatus(
         "Could not copy automatically. Check your browser permissions."
@@ -206,7 +251,9 @@ export default function RecoveryCenter({ scan = null }) {
     <div className="recovery-container">
 
       {/* STEP 1: RECOVERY FORM */}
+
       <div className="panel">
+
         <span className="hero-tag">
           FINANCIAL INCIDENT RESPONSE
         </span>
@@ -223,26 +270,30 @@ export default function RecoveryCenter({ scan = null }) {
         </p>
 
         {/* Imported scan confirmation */}
-        {scan && (
+
+        {activeScan && (
           <div className="recovery-import-notice">
+
             <strong>
               ✓ Investigation Imported Successfully
             </strong>
 
             <p>
-              Source: {scan.source || "FraudShield Scanner"}
+              Source:{" "}
+              {activeScan.source || "FraudShield Scanner"}
             </p>
 
             <p>
-              Risk Score: {scan.risk_score}/100
+              Risk Score: {activeScan.risk_score}/100
               {" — "}
-              {scan.risk_level}
+              {activeScan.risk_level}
             </p>
 
             <small>
               Full scan evidence will appear after
               generating your report.
             </small>
+
           </div>
         )}
 
@@ -250,6 +301,7 @@ export default function RecoveryCenter({ scan = null }) {
           onSubmit={generatePlan}
           className="recovery-form"
         >
+
           <label>
             Have you already sent money?
 
@@ -349,22 +401,47 @@ export default function RecoveryCenter({ scan = null }) {
             />
           </label>
 
-          <button
-            className="primary-btn"
-            type="submit"
+          {/* REPORT ACTION BUTTONS */}
+
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: "12px"
+            }}
           >
-            Generate Incident Report →
-          </button>
+
+            <button
+              className="primary-btn"
+              type="submit"
+            >
+              Generate Incident Report →
+            </button>
+
+            <button
+              className="secondary-btn"
+              type="button"
+              onClick={resetReport}
+            >
+              ↻ Reset Report
+            </button>
+
+          </div>
+
         </form>
       </div>
 
       {/* STEP 2: GENERATED RESULTS */}
+
       {generated && (
         <>
 
           {/* Imported scan findings */}
-          {scan && (
+
+          {activeScan && (
             <div className="panel result-panel">
+
               <span className="hero-tag">
                 IMPORTED SECURITY INVESTIGATION
               </span>
@@ -376,33 +453,35 @@ export default function RecoveryCenter({ scan = null }) {
               <p>
                 Source:{" "}
                 <strong>
-                  {scan.source || "FraudShield Scanner"}
+                  {activeScan.source || "FraudShield Scanner"}
                 </strong>
               </p>
 
               <div className="result-top">
+
                 <div>
                   <span className="result-label">
                     HEURISTIC RISK SCORE
                   </span>
 
                   <div className="risk-number">
-                    {scan.risk_score}
+                    {activeScan.risk_score}
                     <small>/100</small>
                   </div>
                 </div>
 
                 <span
                   className={`risk-badge ${
-                    scan.risk_score >= 70
+                    activeScan.risk_score >= 70
                       ? "high"
-                      : scan.risk_score >= 30
+                      : activeScan.risk_score >= 30
                       ? "medium"
                       : "low"
                   }`}
                 >
-                  {scan.risk_level}
+                  {activeScan.risk_level}
                 </span>
+
               </div>
 
               <div className="risk-track">
@@ -411,19 +490,24 @@ export default function RecoveryCenter({ scan = null }) {
                   style={{
                     width: `${Math.min(
                       100,
-                      Math.max(0, scan.risk_score || 0)
+                      Math.max(
+                        0,
+                        activeScan.risk_score || 0
+                      )
                     )}%`,
                     background:
-                      scan.risk_score >= 70
+                      activeScan.risk_score >= 70
                         ? "#ef6464"
-                        : scan.risk_score >= 30
+                        : activeScan.risk_score >= 30
                         ? "#f0b74f"
                         : "#40d9aa"
                   }}
                 />
               </div>
 
-              <h4>Detected Warning Indicators</h4>
+              <h4>
+                Detected Warning Indicators
+              </h4>
 
               {importedFindings.length > 0 ? (
                 <ul className="finding-list">
@@ -443,10 +527,12 @@ export default function RecoveryCenter({ scan = null }) {
               )}
 
               <div className="recommendation">
-                <h4>Scanner Recommendation</h4>
+                <h4>
+                  Scanner Recommendation
+                </h4>
 
                 <p>
-                  {scan.recommendation ||
+                  {activeScan.recommendation ||
                     "Verify the request independently."}
                 </p>
               </div>
@@ -455,11 +541,14 @@ export default function RecoveryCenter({ scan = null }) {
                 These findings are automated indicators,
                 not proof that fraud occurred.
               </p>
+
             </div>
           )}
 
-          {/* Final incident report */}
+          {/* FINAL INCIDENT REPORT */}
+
           <div className="panel">
+
             <span className="hero-tag">
               FRAUDSHIELD INCIDENT RESPONSE
             </span>
@@ -475,8 +564,11 @@ export default function RecoveryCenter({ scan = null }) {
             </p>
 
             {paymentSent === "no" ? (
+
               <div className="recommendation">
-                <h4>Prevention Guidance</h4>
+                <h4>
+                  Prevention Guidance
+                </h4>
 
                 <p>
                   You indicated that you have not
@@ -485,9 +577,14 @@ export default function RecoveryCenter({ scan = null }) {
                   Avoid using suspicious links.
                 </p>
               </div>
+
             ) : (
+
               <>
-                <h3>Recovery Checklist</h3>
+
+                <h3>
+                  Recovery Checklist
+                </h3>
 
                 {paymentSent === "unknown" && (
                   <p className="disclaimer">
@@ -503,11 +600,14 @@ export default function RecoveryCenter({ scan = null }) {
                 </div>
 
                 <div className="recovery-steps">
+
                   {plan.steps.map((step, index) => (
+
                     <label
                       className="recovery-step"
                       key={index}
                     >
+
                       <input
                         type="checkbox"
                         checked={completed.includes(
@@ -518,11 +618,18 @@ export default function RecoveryCenter({ scan = null }) {
                         }
                       />
 
-                      <span>{step}</span>
+                      <span>
+                        {step}
+                      </span>
+
                     </label>
+
                   ))}
+
                 </div>
+
               </>
+
             )}
 
             <h3 style={{ marginTop: "30px" }}>
@@ -533,22 +640,44 @@ export default function RecoveryCenter({ scan = null }) {
               {buildReport()}
             </pre>
 
-            <button
-              type="button"
-              className="primary-btn"
-              onClick={copyReport}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "12px",
+                alignItems: "center"
+              }}
             >
-              Copy Full Incident Report →
-            </button>
+
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={copyReport}
+              >
+                Copy Full Incident Report →
+              </button>
+
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={resetReport}
+              >
+                ↻ Start New Report
+              </button>
+
+            </div>
 
             {copyStatus && (
               <p role="status">
                 {copyStatus}
               </p>
             )}
+
           </div>
+
         </>
       )}
+
     </div>
   );
 }
