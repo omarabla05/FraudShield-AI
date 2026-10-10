@@ -605,7 +605,7 @@ export default function App() {
           <div className="topbar-info">
             <div className="topbar-chip">
               <CheckCircle2 size={16} />
-              Local backend
+              FraudShield API
             </div>
             <div className="topbar-chip subtle-chip">
               FraudShield prototype
@@ -703,8 +703,31 @@ export default function App() {
               <RecoveryCenter scan={recoveryScan} />
             </div>
           )}
-        </main>
-      </div>
+              </main>
     </div>
-  );
+
+    {/* MOBILE NAVIGATION */}
+    <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
+      {NAV_ITEMS.map((item) => {
+        const Icon = item.icon;
+
+        return (
+          <button
+            key={item.id}
+            type="button"
+            className={`mobile-nav-item ${
+              active === item.id ? "active" : ""
+            }`}
+            onClick={() => goTo(item.id)}
+            aria-label={item.label}
+            aria-current={active === item.id ? "page" : undefined}
+          >
+            <Icon size={21} strokeWidth={2} />
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  </div>
+);
 }
