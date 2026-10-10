@@ -2,7 +2,7 @@
 import { useState } from "react";
 
 const API_URL =
-  "http://127.0.0.1:8000/api/transactions/analyze";
+  `${API_BASE_URL}/api/scam/analyze`;
 
 export default function TransactionMonitor({ onAnalysis }) {
   const [file, setFile] = useState(null);

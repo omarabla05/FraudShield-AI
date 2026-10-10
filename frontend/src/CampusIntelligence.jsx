@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 
-const API_URL = "http://127.0.0.1:8000/api/campus/analyze";
+const API_URL = `${API_BASE_URL}/api/scam/analyze`;
 
 const scenarios = [
   {

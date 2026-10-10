@@ -174,7 +174,7 @@ export default function App() {
     setScanResult(null);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/scam/analyze", {
+      const response = await fetch(`${API_BASE_URL}/api/scam/analyze`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

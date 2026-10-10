@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 const API_URL =
-  "http://127.0.0.1:8000/api/assistant/investigate";
+  `${API_BASE_URL}/api/scam/analyze`;
 
 const SUGGESTIONS = [
   "Why were my transactions flagged?",
