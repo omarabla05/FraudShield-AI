@@ -207,6 +207,7 @@ def analyze_transactions(csv_content: str):
             for t in transactions
         ),
         "transactions": transactions,
+        "flagged_transactions": flagged,
         "disclaimer": (
             "Alerts are rule-based anomalies, not proof "
             "of fraud. Confirm flagged charges with "
