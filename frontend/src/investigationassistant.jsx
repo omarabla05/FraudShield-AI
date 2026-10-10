@@ -17,7 +17,7 @@ import {
 import { API_BASE_URL } from "./api";
 
 const API_URL =
-  `${API_BASE_URL}/api/scam/analyze`;
+  `${API_BASE_URL}/api/assistant/investigate`;
 
 const SUGGESTIONS = [
   "Why were my transactions flagged?",

@@ -1848,3 +1848,329 @@ p {
     animation: none !important;
   }
 }
+/* =========================================
+   FRAUDSHIELD AI — MOBILE RESPONSIVE FIX
+   iPhone, Android, Tablet
+   ========================================= */
+
+/* Prevent content from forcing the page wider */
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
+
+.app-shell,
+.app-main,
+.content-area,
+.page-stack,
+.panel,
+.hero-card,
+.scanner-layout-new,
+.dashboard-grid,
+.fs-assistant-layout {
+  min-width: 0;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+}
+
+input,
+textarea,
+select {
+  max-width: 100%;
+}
+
+/* TABLET */
+@media (max-width: 1100px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: relative;
+    top: auto;
+    height: auto;
+    overflow: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-card,
+  .dashboard-grid,
+  .scanner-layout-new,
+  .fs-assistant-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .content-area {
+    padding: 24px;
+  }
+
+  .topbar {
+    padding: 20px 24px;
+  }
+}
+
+/* PHONES */
+@media (max-width: 650px) {
+  .app-shell {
+    display: block;
+    width: 100%;
+  }
+
+  .app-main,
+  .content-area {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    padding: 14px;
+    gap: 14px;
+  }
+
+  .brand-box {
+    padding: 13px;
+  }
+
+  .brand-box h2 {
+    font-size: 20px;
+  }
+
+  .brand-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .nav-sections {
+    gap: 12px;
+  }
+
+  .nav-group {
+    gap: 7px;
+  }
+
+  .nav-item {
+    padding: 11px;
+    gap: 10px;
+  }
+
+  .nav-item-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .nav-item-text strong {
+    font-size: 14px;
+  }
+
+  .nav-item-text span {
+    font-size: 12px;
+  }
+
+  .topbar {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .topbar h1 {
+    font-size: 22px;
+  }
+
+  .topbar-info {
+    width: 100%;
+  }
+
+  .topbar-chip {
+    font-size: 11px;
+    padding: 7px 10px;
+  }
+
+  .content-area {
+    padding: 16px 12px 32px;
+  }
+
+  .page-stack {
+    gap: 15px;
+  }
+
+  .hero-card,
+  .panel,
+  .scanner-header-card,
+  .simple-intro-card,
+  .stat-card {
+    padding: 17px;
+    border-radius: 15px;
+  }
+
+  .hero-card,
+  .dashboard-grid,
+  .scanner-layout-new,
+  .quick-actions-grid,
+  .stats-grid,
+  .stats,
+  .campus-scenarios,
+  .fs-assistant-layout,
+  .fs-context-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  h1,
+  .scanner-header-card h1,
+  .simple-intro-card h1 {
+    font-size: 25px;
+    overflow-wrap: anywhere;
+  }
+
+  .panel h2,
+  .panel-header h2,
+  .campus-container h2 {
+    font-size: 21px;
+  }
+
+  .panel h3,
+  .campus-container h3 {
+    font-size: 18px;
+  }
+
+  .scan-textarea {
+    width: 100%;
+    min-height: 155px;
+    font-size: 16px;
+  }
+
+  .primary-btn,
+  .secondary-btn {
+    min-height: 48px;
+    max-width: 100%;
+    font-size: 14px;
+  }
+
+  .hero-actions,
+  .big-action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-actions button,
+  .big-action-row button {
+    width: 100%;
+  }
+
+  .example-btn,
+  .campus-scenario {
+    width: 100%;
+  }
+
+  .result-summary-card,
+  .result-top,
+  .alert-heading,
+  .activity-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .big-score,
+  .risk-number {
+    font-size: 38px;
+  }
+
+  /* Transaction Monitor */
+  .upload-zone {
+    padding: 18px 12px;
+  }
+
+  .upload-zone input {
+    width: 100%;
+    font-size: 13px;
+  }
+
+  .transaction-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .transaction-table {
+    min-width: 630px;
+  }
+
+  /* Investigation Assistant */
+  .fs-chat-window {
+    width: 100%;
+    height: min(75dvh, 720px);
+    min-height: 420px;
+  }
+
+  .fs-chat-header {
+    padding: 12px;
+  }
+
+  .fs-chat-messages {
+    padding: 14px 10px;
+  }
+
+  .fs-chat-message-body,
+  .fs-chat-message.is-user .fs-chat-message-body {
+    max-width: 90%;
+  }
+
+  .fs-chat-bubble {
+    padding: 12px;
+  }
+
+  .fs-chat-footer {
+    padding: 10px;
+  }
+
+  .fs-chat-composer {
+    padding: 7px;
+  }
+
+  .fs-chat-composer textarea {
+    font-size: 16px;
+  }
+
+  .fs-chat-suggestions {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .fs-context-panel {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Recovery Center */
+  .recovery-form input,
+  .recovery-form textarea,
+  .recovery-form select {
+    font-size: 16px;
+  }
+
+  .recovery-form .primary-btn {
+    width: 100%;
+    align-self: stretch;
+  }
+
+  .recovery-step {
+    padding: 14px;
+  }
+
+  .incident-report-preview {
+    padding: 13px;
+    font-size: 12px;
+  }
+}

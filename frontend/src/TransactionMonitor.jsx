@@ -3,7 +3,7 @@ import { useState } from "react";
 import { API_BASE_URL } from "./api";
 
 const API_URL =
-  `${API_BASE_URL}/api/scam/analyze`;
+  `${API_BASE_URL}/api/transactions/analyze`;
 
 export default function TransactionMonitor({ onAnalysis }) {
   const [file, setFile] = useState(null);
